@@ -7,6 +7,7 @@ import (
 	tests "ozon-tests-runner"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func Task1(in *bufio.Reader, out *bufio.Writer) {
@@ -71,7 +72,9 @@ func parseInput(in *bufio.Reader) (inputData []string) {
 
 func main() {
 	zipPath := "remove-digit.zip"
+	timeLimit := 1000 * time.Millisecond
+	memoryLimit := 256 * 1024 * 1024 // 256 MB
 
-	runner := tests.NewTestRunner(zipPath)
+	runner := tests.NewTestRunner(zipPath, timeLimit, uint64(memoryLimit))
 	runner.RunTests(Task1)
 }

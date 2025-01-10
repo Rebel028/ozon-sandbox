@@ -4,20 +4,27 @@ import (
 	"archive/zip"
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"log"
+	"runtime"
 	"sort"
 	"strings"
+	"time"
 )
 
 type TestRunner struct {
 	zipFilePath string
+	timeLimit   time.Duration
+	memoryLimit uint64
 }
 
-func NewTestRunner(zipFilePath string) *TestRunner {
+func NewTestRunner(zipFilePath string, timeLimit time.Duration, memoryLimit uint64) *TestRunner {
 	return &TestRunner{
 		zipFilePath: zipFilePath,
+		timeLimit:   timeLimit,
+		memoryLimit: memoryLimit,
 	}
 }
 
@@ -57,13 +64,31 @@ func (tr *TestRunner) RunTests(solve func(*bufio.Reader, *bufio.Writer)) {
 		in := bufio.NewReader(strings.NewReader(inputData))
 		out := bufio.NewWriter(&resultBuffer)
 
-		solve(in, out)
-		out.Flush()
+		ctx, cancel := context.WithTimeout(context.Background(), tr.timeLimit)
+		defer cancel()
 
-		actualOutput := resultBuffer.String()
+		done := make(chan bool)
+		go func() {
+			solve(in, out)
+			out.Flush()
+			done <- true
+		}()
 
-		if actualOutput != expectedOutput {
-			log.Fatalf("Test failed for input:\n%s\nExpected: %s\nActual: %s", inputData, expectedOutput, actualOutput)
+		select {
+		case <-ctx.Done():
+			log.Fatalf("Test exceeded time limit for input:\n%s", inputData)
+		case <-done:
+			var memStats runtime.MemStats
+			runtime.ReadMemStats(&memStats)
+			log.Printf("Used %d", memStats.Alloc)
+			if memStats.Alloc > tr.memoryLimit {
+				log.Fatalf("Test exceeded memory limit %d: Used %d", tr.memoryLimit, memStats.Alloc)
+			}
+
+			actualOutput := resultBuffer.String()
+			if actualOutput != expectedOutput {
+				log.Fatalf("Test failed for input:\n%s\nExpected: %s\nActual: %s", inputData, expectedOutput, actualOutput)
+			}
 		}
 	}
 
