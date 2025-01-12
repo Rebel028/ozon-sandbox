@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"testing"
 	"time"
 )
 
@@ -18,10 +19,12 @@ type TestRunner struct {
 	zipFilePath string
 	timeLimit   time.Duration
 	memoryLimit uint64
+	t           *testing.T
 }
 
-func NewTestRunner(zipFilePath string, timeLimit time.Duration, memoryLimit uint64) *TestRunner {
+func NewTestRunner(t *testing.T, zipFilePath string, timeLimit time.Duration, memoryLimit uint64) *TestRunner {
 	return &TestRunner{
+		t:           t,
 		zipFilePath: zipFilePath,
 		timeLimit:   timeLimit,
 		memoryLimit: memoryLimit,
@@ -29,11 +32,21 @@ func NewTestRunner(zipFilePath string, timeLimit time.Duration, memoryLimit uint
 }
 
 func (tr *TestRunner) RunTests(solve func(*bufio.Reader, *bufio.Writer)) {
+	t := tr.t
+	startTests := time.Now()
+
 	zipReader, err := zip.OpenReader(tr.zipFilePath)
 	if err != nil {
-		log.Fatalf("failed to open zip file: %v", err)
+		t.Fatalf("failed to open zip file: %v", err)
 	}
 	defer zipReader.Close()
+	defer func() {
+		duration := time.Since(startTests)
+		fmt.Printf("Total execution time: %s\n", duration)
+		var memStats runtime.MemStats
+		runtime.ReadMemStats(&memStats)
+		fmt.Printf("Total memory used: %dMb\n", memStats.Alloc/1_000_000)
+	}()
 
 	files := zipReader.File
 
@@ -52,18 +65,19 @@ func (tr *TestRunner) RunTests(solve func(*bufio.Reader, *bufio.Writer)) {
 
 		inputData, err := tr.readFile(inputFile)
 		if err != nil {
-			log.Fatalf("failed to read input file: %v", err)
+			t.Fatalf("failed to read input file: %v", err)
 		}
 
 		expectedOutput, err := tr.readFile(outputFile)
 		if err != nil {
-			log.Fatalf("failed to read output file: %v", err)
+			t.Fatalf("failed to read output file: %v", err)
 		}
 
 		var resultBuffer bytes.Buffer
 		in := bufio.NewReader(strings.NewReader(inputData))
 		out := bufio.NewWriter(&resultBuffer)
 
+		start := time.Now()
 		ctx, cancel := context.WithTimeout(context.Background(), tr.timeLimit)
 		defer cancel()
 
@@ -80,14 +94,17 @@ func (tr *TestRunner) RunTests(solve func(*bufio.Reader, *bufio.Writer)) {
 		case <-done:
 			var memStats runtime.MemStats
 			runtime.ReadMemStats(&memStats)
+			duration := time.Since(start)
+
+			log.Printf("Execution time: %s", duration)
 			log.Printf("Used %d bytes of memory", memStats.Alloc)
 			if memStats.Alloc > tr.memoryLimit {
-				log.Fatalf("Test exceeded memory limit %d: Used %d", tr.memoryLimit, memStats.Alloc)
+				t.Fatalf("Test exceeded memory limit %d: Used %d", tr.memoryLimit, memStats.Alloc)
 			}
 
 			actualOutput := resultBuffer.String()
 			if actualOutput != expectedOutput {
-				log.Fatalf("Test failed for input:\n%s\nExpected: %s\nActual: %s", inputData[:100], expectedOutput, actualOutput)
+				t.Fatalf("Test failed for input:\n%s\nExpected: %s\nActual: %s", inputData[:100], expectedOutput, actualOutput)
 			}
 		}
 	}
