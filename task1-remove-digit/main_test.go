@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-func Test_Solve3(t *testing.T) {
-	zipPath := "virus-files-go.zip"
+func Test_Solve1(t *testing.T) {
+	zipPath := "remove-digit.zip"
 	timeLimit := 1000 * time.Millisecond
 	memoryLimit := 256 * 1024 * 1024 // 256 MB
 

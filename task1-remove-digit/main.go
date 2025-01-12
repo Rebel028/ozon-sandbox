@@ -3,12 +3,17 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
-	tests "ozon-tests-runner"
-	"strconv"
+	"os"
 	"strings"
-	"time"
 )
+
+func main() {
+	in := bufio.NewReader(os.Stdin)
+	out := bufio.NewWriter(os.Stdout)
+	defer out.Flush()
+
+	Solve(in, out)
+}
 
 func Solve(in *bufio.Reader, out *bufio.Writer) {
 	inputData := parseInput(in)
@@ -17,8 +22,8 @@ func Solve(in *bufio.Reader, out *bufio.Writer) {
 	_, _ = fmt.Fprint(out, outputStr+"\n")
 }
 
-func prepareOutput(inputData []string) (results []string) {
-	for _, str := range inputData {
+func prepareOutput(inputData chan string) (results []string) {
+	for str := range inputData {
 		result := removeDigit(str)
 		results = append(results, result)
 	}
@@ -50,31 +55,26 @@ func removeDigit(input string) (result string) {
 	return
 }
 
-func parseInput(in *bufio.Reader) (inputData []string) {
-	scanner := bufio.NewScanner(in)
-	scanner.Buffer(make([]byte, 100001), 100001)
-	scanner.Scan()
-	expectedCount, _ := strconv.Atoi(scanner.Text())
+func parseInput(in *bufio.Reader) chan string {
+	inputData := make(chan string)
 
-	for scanner.Scan() {
-		line := scanner.Text()
-		if line == "" {
-			break
+	go func() {
+		scanner := bufio.NewScanner(in)
+		scanner.Buffer(make([]byte, 100001), 100001)
+		scanner.Scan()
+		//expectedCount, _ := strconv.Atoi(scanner.Text())
+		for scanner.Scan() {
+			line := scanner.Text()
+			if line == "" {
+				break
+			}
+			inputData <- line
 		}
-		inputData = append(inputData, line)
-	}
+		//if len(inputData) != expectedCount {
+		//	log.Panicf("Expected %d lines, got %d", expectedCount, len(inputData))
+		//}
+		defer close(inputData)
+	}()
 
-	if len(inputData) != expectedCount {
-		log.Panicf("Expected %d lines, got %d", expectedCount, len(inputData))
-	}
-	return
-}
-
-func main() {
-	zipPath := "remove-digit.zip"
-	timeLimit := 1000 * time.Millisecond
-	memoryLimit := 256 * 1024 * 1024 // 256 MB
-
-	runner := tests.NewTestRunner(zipPath, timeLimit, uint64(memoryLimit))
-	runner.RunTests(Solve)
+	return inputData
 }
