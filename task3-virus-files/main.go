@@ -5,20 +5,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	tests "ozon-tests-runner"
-	"regexp"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 )
 
 func main() {
-	zipPath := "virus-files-go.zip"
-	timeLimit := 1000 * time.Millisecond
-	memoryLimit := 256 * 1024 * 1024 // 256 MB
+	in := bufio.NewReader(os.Stdin)
+	out := bufio.NewWriter(os.Stdout)
+	defer out.Flush()
 
-	runner := tests.NewTestRunner(zipPath, timeLimit, uint64(memoryLimit))
-	runner.RunTests(Solve)
+	Solve(in, out)
 }
 
 func Solve(in *bufio.Reader, out *bufio.Writer) {
@@ -28,72 +26,58 @@ func Solve(in *bufio.Reader, out *bufio.Writer) {
 	_, _ = fmt.Fprint(out, outputStr+"\n")
 }
 
-func parseInput(in *bufio.Reader) (inputData []Directory) {
-	scanner := bufio.NewScanner(in)
-	//scanner.Buffer(make([]byte, 3000000), 3000000)
-	scanner.Scan()
-	expectedCount, _ := strconv.Atoi(scanner.Text())
+func parseInput(in *bufio.Reader) chan Directory {
+	var inputData = make(chan Directory)
+	go func() {
+		scanner := bufio.NewScanner(in)
+		scanner.Scan()
+		expectedCount, _ := strconv.Atoi(scanner.Text())
+		i := 0
 
-	for scanner.Scan() {
-		line := scanner.Text()
-		if line == "" {
-			break
+		for scanner.Scan() {
+			line := scanner.Text()
+			if line == "" {
+				break
+			}
+			linesToScan, _ := strconv.Atoi(line)
+			var jsonStr []byte
+			for i := 0; i < linesToScan; i++ {
+				scanner.Scan()
+				jsonStr = append(jsonStr, scanner.Bytes()...)
+			}
+			var item Directory
+			err := json.Unmarshal(jsonStr, &item)
+			if err != nil {
+				log.Fatal(err)
+			}
+			inputData <- item
+			i++
 		}
-		linesToScan, _ := strconv.Atoi(line)
-		var jsonStr []byte
-		for i := 0; i < linesToScan; i++ {
-			scanner.Scan()
-			jsonStr = append(jsonStr, scanner.Bytes()...)
+		if i != expectedCount {
+			log.Panicf("Expected %d lines, got %d", expectedCount, len(inputData))
 		}
-		var item Directory
-		err := json.Unmarshal(jsonStr, &item)
-		if err != nil {
-			log.Fatal(err)
-		}
+		defer close(inputData)
+	}()
 
-		inputData = append(inputData, item)
-	}
-
-	if len(inputData) != expectedCount {
-		log.Panicf("Expected %d lines, got %d", expectedCount, len(inputData))
-	}
-	return
+	return inputData
 }
 
-func prepareOutput(data []Directory) (results []string) {
-	for _, item := range data {
-		result := countInfectedFiles(item)
+func prepareOutput(data chan Directory) (results []string) {
+	for item := range data {
+		//result := countInfectedFiles(item)
+		result := strconv.Itoa(countInfectedRecursive(item, false))
 		results = append(results, result)
 	}
 	return
 }
 
-func countInfectedFiles(item Directory) string {
-	c := 0
-	stack := []Directory{item}
-	for len(stack) > 0 {
-		current := stack[len(stack)-1]
-		stack = stack[:len(stack)-1]
-		if current.IsInfected() {
-			c += addAllToInfected(current)
-		} else {
-			for _, child := range current.Folders {
-				stack = append(stack, child)
-			}
-		}
+func countInfectedRecursive(dir Directory, parentInfected bool) (count int) {
+	thisInfected := parentInfected || dir.IsInfected()
+	if thisInfected {
+		count = len(dir.Files)
 	}
-	return strconv.Itoa(c)
-}
-
-func addAllToInfected(dir Directory) (c int) {
-	stack := []Directory{dir}
-	for len(stack) > 0 {
-		current := stack[len(stack)-1]
-		stack = stack[:len(stack)-1]
-		c += len(current.Files)
-		for _, child := range current.Folders {
-			stack = append(stack, child)
-		}
+	for _, folder := range dir.Folders {
+		count += countInfectedRecursive(folder, thisInfected)
 	}
 	return
 }
@@ -106,8 +90,7 @@ type Directory struct {
 
 func (dir *Directory) IsInfected() bool {
 	for _, file := range dir.Files {
-		matched, _ := regexp.Match(".hack$", []byte(file))
-		if matched {
+		if filepath.Ext(file) == ".hack" {
 			return true
 		}
 	}
