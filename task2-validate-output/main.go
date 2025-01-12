@@ -4,20 +4,17 @@ import (
 	"bufio"
 	"fmt"
 	"log"
-	tests "ozon-tests-runner"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 )
 
 func main() {
-	zipPath := "validate-output.zip"
-	timeLimit := 1000 * time.Millisecond
-	memoryLimit := 256 * 1024 * 1024 // 256 MB
-
-	runner := tests.NewTestRunner(zipPath, timeLimit, uint64(memoryLimit))
-	runner.RunTests(Solve)
+	in := bufio.NewReader(os.Stdin)
+	out := bufio.NewWriter(os.Stdout)
+	defer out.Flush()
+	Solve(in, out)
 }
 
 func Solve(in *bufio.Reader, out *bufio.Writer) {
