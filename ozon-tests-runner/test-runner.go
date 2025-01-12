@@ -76,18 +76,18 @@ func (tr *TestRunner) RunTests(solve func(*bufio.Reader, *bufio.Writer)) {
 
 		select {
 		case <-ctx.Done():
-			log.Fatalf("Test exceeded time limit for input:\n%s", inputData)
+			log.Printf("Test exceeded time limit for input:\n%s", inputData)
 		case <-done:
 			var memStats runtime.MemStats
 			runtime.ReadMemStats(&memStats)
-			log.Printf("Used %d", memStats.Alloc)
+			log.Printf("Used %d bytes of memory", memStats.Alloc)
 			if memStats.Alloc > tr.memoryLimit {
 				log.Fatalf("Test exceeded memory limit %d: Used %d", tr.memoryLimit, memStats.Alloc)
 			}
 
 			actualOutput := resultBuffer.String()
 			if actualOutput != expectedOutput {
-				log.Fatalf("Test failed for input:\n%s\nExpected: %s\nActual: %s", inputData, expectedOutput, actualOutput)
+				log.Fatalf("Test failed for input:\n%s\nExpected: %s\nActual: %s", inputData[:100], expectedOutput, actualOutput)
 			}
 		}
 	}
