@@ -5,4 +5,5 @@ use (
 	task1-remove-digit
 	task2-validate-output
 	task3-virus-files
+	task4-order-planner
 )
