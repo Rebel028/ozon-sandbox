@@ -2,6 +2,6 @@ go 1.22
 
 use (
 	ozon-tests-runner
-	task1
-	task2
+	task1-remove-digit
+	task2-validate-output
 )
