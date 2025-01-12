@@ -38,6 +38,10 @@
 
 Для работы с JSON в языке Go можно пользоваться библиотекой "encoding/json": https://pkg.go.dev/encoding/json.
 
+## Набор тестов
+
+[Скачать](./virus-files-go.zip)
+
 ## Пример теста 1
 
 ### Входные данные

@@ -4,4 +4,5 @@ use (
 	ozon-tests-runner
 	task1-remove-digit
 	task2-validate-output
+	task3-virus-files
 )

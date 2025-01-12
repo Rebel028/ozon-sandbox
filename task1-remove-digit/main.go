@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func Task1(in *bufio.Reader, out *bufio.Writer) {
+func Solve(in *bufio.Reader, out *bufio.Writer) {
 	inputData := parseInput(in)
 	outputData := prepareOutput(inputData)
 	outputStr := strings.Join(outputData, "\n")
@@ -76,5 +76,5 @@ func main() {
 	memoryLimit := 256 * 1024 * 1024 // 256 MB
 
 	runner := tests.NewTestRunner(zipPath, timeLimit, uint64(memoryLimit))
-	runner.RunTests(Task1)
+	runner.RunTests(Solve)
 }
