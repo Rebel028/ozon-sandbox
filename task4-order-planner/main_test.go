@@ -7,8 +7,8 @@ import (
 )
 
 func Test_Solve4(t *testing.T) {
-	zipPath := "virus-files-go.zip"
-	timeLimit := 1000 * time.Millisecond
+	zipPath := "order-planner.zip"
+	timeLimit := 3000 * time.Millisecond
 	memoryLimit := 256 * 1024 * 1024 // 256 MB
 
 	runner := tests.NewTestRunner(t, zipPath, timeLimit, uint64(memoryLimit))

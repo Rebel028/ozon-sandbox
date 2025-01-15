@@ -91,7 +91,7 @@ func (tr *TestRunner) RunTests(solve func(*bufio.Reader, *bufio.Writer)) {
 
 		select {
 		case <-ctx.Done():
-			log.Printf("Test exceeded time limit for input:\n%s", inputData)
+			log.Printf("Test exceeded time limit for input:\n%s", inputData[:100])
 		case <-done:
 			var memStats runtime.MemStats
 			runtime.ReadMemStats(&memStats)
