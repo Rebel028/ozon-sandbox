@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/sergi/go-diff/diffmatchpatch"
 	"io"
 	"log"
 	"runtime"
@@ -104,12 +105,19 @@ func (tr *TestRunner) RunTests(solve func(*bufio.Reader, *bufio.Writer)) {
 
 			actualOutput := resultBuffer.String()
 			if actualOutput != expectedOutput {
-				t.Fatalf("Test failed for input:\n%s\nExpected: %s\nActual: %s", inputData[:100], expectedOutput, actualOutput)
+				diff := diffOutput(actualOutput, expectedOutput)
+				t.Fatalf("File: %s\nTest failed for input:\n%s\nExpected: %s\nActual: %s\n\n Diff: %s", inputFile.Name, inputData[:100], expectedOutput, actualOutput, diff)
 			}
 		}
 	}
 
 	fmt.Println("All tests passed successfully.")
+}
+
+func diffOutput(actual, expected string) string {
+	dmp := diffmatchpatch.New()
+	diffs := dmp.DiffMain(expected, actual, false)
+	return dmp.DiffPrettyText(diffs)
 }
 
 func (tr *TestRunner) readFile(file *zip.File) (string, error) {
